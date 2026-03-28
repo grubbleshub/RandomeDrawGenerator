@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCP Random Draw Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #1a2744;
+    --navy-dark: #111c33;
+    --navy-mid: #243057;
+    --yellow: #f5c518;
+    --yellow-light: #ffe066;
+    --yellow-dark: #c49d00;
+    --white: #ffffff;
+    --gray: #8090b0;
+    --gray-light: #e8ecf5;
+    --court-bg: #1e3060;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: var(--navy-dark);
+    color: var(--white);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse at 20% 0%, rgba(245,197,24,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 100%, rgba(245,197,24,0.05) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 28px 0 24px;
+    border-bottom: 2px solid rgba(245,197,24,0.25);
+    margin-bottom: 36px;
+  }
+
+  .logo-wrap {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--yellow);
+    flex-shrink: 0;
+    background: var(--navy-mid);
+  }
+  .logo-wrap img { width: 100%; height: 100%; object-fit: cover; }
+
+  .header-text h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.4rem;
+    letter-spacing: 3px;
+    color: var(--white);
+    line-height: 1;
+  }
+  .header-text .subtitle {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.95rem;
+    letter-spacing: 2px;
+    color: var(--yellow);
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .header-badge {
+    margin-left: auto;
+    background: var(--yellow);
+    color: var(--navy-dark);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 20px;
+  }
+
+  /* Setup Section */
+  .setup-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 28px;
+  }
+
+  .panel {
+    background: var(--navy-mid);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .panel-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--yellow);
+    margin-bottom: 16px;
+  }
+
+  .player-input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .player-input-row input {
+    flex: 1;
+    background: var(--navy-dark);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--white);
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .player-input-row input:focus { border-color: var(--yellow); }
+  .player-input-row input::placeholder { color: var(--gray); }
+
+  .btn-remove {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--gray);
+    border-radius: 8px;
+    width: 38px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .btn-remove:hover { background: rgba(255,60,60,0.15); color: #ff6b6b; border-color: rgba(255,60,60,0.3); }
+
+  .btn-add {
+    background: rgba(245,197,24,0.1);
+    border: 1px dashed rgba(245,197,24,0.4);
+    color: var(--yellow);
+    border-radius: 8px;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    width: 100%;
+    transition: all 0.2s;
+  }
+  .btn-add:hover { background: rgba(245,197,24,0.18); border-style: solid; }
+
+  /* Settings panel */
+  .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .setting-row:last-child { margin-bottom: 0; }
+  .setting-label {
+    font-size: 0.9rem;
+    color: var(--gray-light);
+    font-weight: 500;
+  }
+  .setting-label small { display: block; font-size: 0.78rem; color: var(--gray); font-weight: 400; }
+
+  .number-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--navy-dark);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .num-btn {
+    background: none;
+    border: none;
+    color: var(--yellow);
+    width: 34px;
+    height: 36px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: background 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .num-btn:hover { background: rgba(245,197,24,0.12); }
+  .num-display {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--white);
+    min-width: 36px;
+    text-align: center;
+  }
+
+  .player-count-badge {
+    background: var(--navy-dark);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.85rem;
+    color: var(--yellow);
+  }
+
+  /* Generate Button */
+  .generate-wrap {
+    margin-bottom: 36px;
+    display: flex;
+    gap: 14px;
+  }
+
+  .btn-generate {
+    flex: 1;
+    background: var(--yellow);
+    color: var(--navy-dark);
+    border: none;
+    border-radius: 10px;
+    padding: 16px 32px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-generate:hover { background: var(--yellow-light); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(245,197,24,0.3); }
+  .btn-generate:active { transform: translateY(0); }
+  .btn-generate::after {
+    content: '🎲';
+    margin-left: 10px;
+    font-size: 1.1rem;
+  }
+
+  .btn-reset {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: var(--gray);
+    border-radius: 10px;
+    padding: 16px 20px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.85rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-reset:hover { border-color: rgba(255,255,255,0.25); color: var(--white); }
+
+  /* Results */
+  .results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .results-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    letter-spacing: 2px;
+    color: var(--white);
+  }
+  .round-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .round-tab {
+    background: var(--navy-mid);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--gray);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .round-tab.active, .round-tab:hover {
+    background: var(--yellow);
+    color: var(--navy-dark);
+    border-color: var(--yellow);
+    font-weight: 700;
+  }
+
+  .courts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .court-card {
+    background: var(--court-bg);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    overflow: hidden;
+    animation: cardIn 0.35s ease both;
+  }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .court-header {
+    background: var(--navy-dark);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 2px solid var(--yellow);
+  }
+  .court-icon {
+    width: 28px; height: 28px;
+    background: var(--yellow);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    color: var(--navy-dark);
+  }
+  .court-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--white);
+  }
+
+  .team-section {
+    padding: 14px 16px;
+  }
+  .team-label {
+    font-size: 0.7rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--yellow);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .team-players {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+  .player-chip {
+    background: rgba(255,255,255,0.07);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .player-chip::before {
+    content: '';
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--yellow);
+    flex-shrink: 0;
+  }
+
+  .vs-divider {
+    text-align: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 2px;
+    color: rgba(245,197,24,0.5);
+    padding: 2px 0 10px;
+  }
+
+  /* Bye section */
+  .bye-section {
+    background: var(--navy-mid);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 18px 24px;
+    margin-bottom: 24px;
+  }
+  .bye-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gray);
+    margin-bottom: 10px;
+  }
+  .bye-players {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .bye-chip {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 0.85rem;
+    color: var(--gray);
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--gray);
+  }
+  .empty-state .big-icon { font-size: 3rem; margin-bottom: 14px; opacity: 0.5; }
+  .empty-state p { font-size: 1rem; line-height: 1.5; }
+
+  /* All rounds view */
+  .all-rounds-table {
+    background: var(--navy-mid);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    overflow: auto;
+  }
+  .all-rounds-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  .all-rounds-table th {
+    background: var(--navy-dark);
+    padding: 10px 14px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--yellow);
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: 2px solid rgba(245,197,24,0.2);
+  }
+  .all-rounds-table td {
+    padding: 9px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    color: var(--gray-light);
+    white-space: nowrap;
+  }
+  .all-rounds-table tr:last-child td { border-bottom: none; }
+  .all-rounds-table tr:hover td { background: rgba(255,255,255,0.03); }
+  .all-rounds-table td:first-child { font-weight: 600; color: var(--white); }
+
+  .view-toggle {
+    display: flex;
+    gap: 4px;
+    background: var(--navy-dark);
+    border-radius: 8px;
+    padding: 4px;
+  }
+  .view-btn {
+    background: none;
+    border: none;
+    color: var(--gray);
+    padding: 6px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+  .view-btn.active { background: var(--yellow); color: var(--navy-dark); }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .setup-grid { grid-template-columns: 1fr; }
+    header { flex-wrap: wrap; }
+    .header-badge { margin-left: 0; }
+    .courts-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  .warning-bar {
+    background: rgba(245,197,24,0.12);
+    border: 1px solid rgba(245,197,24,0.3);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    color: var(--yellow);
+    margin-bottom: 16px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo-wrap">
+      <!-- Inline SVG placeholder matching MCP brand if img fails -->
+      <img src="MCP_Logo.jpg" alt="MCP Logo" onerror="this.style.display='none'">
+    </div>
+    <div class="header-text">
+      <h1>Random Draw Generator</h1>
+      <div class="subtitle">Moreton City Pickleball</div>
+    </div>
+    <div class="header-badge">Court Draw Tool</div>
+  </header>
+
+  <div class="setup-grid">
+
+    <!-- Players Panel -->
+    <div class="panel">
+      <div class="panel-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Players</span>
+        <span class="player-count-badge" id="playerCount">4 players</span>
+      </div>
+      <div id="playerList"></div>
+      <button class="btn-add" id="addPlayerBtn" onclick="addPlayer()">+ Add Player</button>
+    </div>
+
+    <!-- Settings Panel -->
+    <div class="panel">
+      <div class="panel-title">Draw Settings</div>
+      
+      <div class="setting-row">
+        <div class="setting-label">
+          Courts Available
+          <small>Active courts for this session</small>
+        </div>
+        <div class="number-input-wrap">
+          <button class="num-btn" onclick="adjustNum('courts', -1)">−</button>
+          <div class="num-display" id="courtsDisplay">2</div>
+          <button class="num-btn" onclick="adjustNum('courts', 1)">+</button>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-label">
+          Rounds to Generate
+          <small>Number of rotation rounds</small>
+        </div>
+        <div class="number-input-wrap">
+          <button class="num-btn" onclick="adjustNum('rounds', -1)">−</button>
+          <div class="num-display" id="roundsDisplay">6</div>
+          <button class="num-btn" onclick="adjustNum('rounds', 1)">+</button>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-label">
+          Players per Court
+          <small>Doubles = 4, Singles = 2</small>
+        </div>
+        <div class="number-input-wrap">
+          <button class="num-btn" onclick="adjustNum('perCourt', -1)">−</button>
+          <div class="num-display" id="perCourtDisplay">4</div>
+          <button class="num-btn" onclick="adjustNum('perCourt', 1)">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="warning-bar" id="warningBar"></div>
+
+  <div class="generate-wrap">
+    <button class="btn-generate" onclick="generateDraw()">Generate Draw</button>
+    <button class="btn-reset" onclick="resetResults()">Clear Results</button>
+  </div>
+
+  <!-- Results -->
+  <div id="resultsSection" style="display:none;">
+    <div class="results-header">
+      <div class="results-title" id="resultsTitle">Round Results</div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <div class="view-toggle">
+          <button class="view-btn active" id="viewCards" onclick="setView('cards')">Courts</button>
+          <button class="view-btn" id="viewTable" onclick="setView('table')">All Rounds</button>
+          <button class="view-btn" id="viewStats" onclick="setView('stats')">Pairing Stats</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="round-tabs" id="roundTabs"></div>
+    <div style="height:16px;"></div>
+
+    <div id="cardsView">
+      <div class="courts-grid" id="courtsGrid"></div>
+      <div id="byeSection" style="display:none;" class="bye-section">
+        <div class="bye-title">⏸ Sitting Out This Round</div>
+        <div class="bye-players" id="byePlayers"></div>
+      </div>
+    </div>
+
+    <div id="tableView" style="display:none;">
+      <div class="all-rounds-table">
+        <table id="allRoundsTable"></table>
+      </div>
+    </div>
+
+    <div id="statsView" style="display:none;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;" id="statsGrid"></div>
+    </div>
+  </div>
+
+  <div id="emptyState" class="empty-state">
+    <div class="big-icon">🏓</div>
+    <p>Add your players, set your courts and rounds,<br>then hit <strong>Generate Draw</strong> to get started.</p>
+  </div>
+
+</div>
+
+<script>
+  // --- State ---
+  let settings = { courts: 2, rounds: 6, perCourt: 4 };
+  let players = ['Andy', 'Brett', 'Dan', 'Ben'];
+  let allRounds = []; // array of rounds; each round = array of courts; each court = array of teams
+  let currentRound = 0;
+  let currentView = 'cards';
+
+  // --- Init ---
+  renderPlayers();
+
+  function renderPlayers() {
+    const list = document.getElementById('playerList');
+    list.innerHTML = players.map((p, i) => `
+      <div class="player-input-row">
+        <input type="text" value="${p}" placeholder="Player name" 
+               oninput="players[${i}] = this.value; updatePlayerCount()"
+               onkeydown="if(event.key==='Enter') addPlayer()">
+        <button class="btn-remove" onclick="removePlayer(${i})" title="Remove">×</button>
+      </div>
+    `).join('');
+    updatePlayerCount();
+  }
+
+  function updatePlayerCount() {
+    const valid = players.filter(p => p.trim()).length;
+    document.getElementById('playerCount').textContent = `${valid} player${valid !== 1 ? 's' : ''}`;
+  }
+
+  function addPlayer() {
+    players.push('');
+    renderPlayers();
+    const inputs = document.querySelectorAll('#playerList input');
+    inputs[inputs.length - 1].focus();
+  }
+
+  function removePlayer(i) {
+    players.splice(i, 1);
+    renderPlayers();
+  }
+
+  function adjustNum(key, delta) {
+    const limits = { courts: [1, 20], rounds: [1, 20], perCourt: [2, 6] };
+    settings[key] = Math.min(limits[key][1], Math.max(limits[key][0], settings[key] + delta));
+    document.getElementById(key + 'Display').textContent = settings[key];
+  }
+
+  // --- Draw Logic ---
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // Build a blank n×n matrix keyed by player name pairs
+  function makeMatrix(playerList) {
+    const m = {};
+    for (const a of playerList) {
+      m[a] = {};
+      for (const b of playerList) m[a][b] = 0;
+    }
+    return m;
+  }
+
+  // Pair key (order-independent)
+  function pairKey(a, b) { return a < b ? `${a}|${b}` : `${b}|${a}`; }
+
+  // Score a candidate arrangement for ONE round given history matrices.
+  // Lower is better.
+  // partnerW and opponentW control relative penalty weights.
+  function scoreArrangement(courts, partnerMatrix, opponentMatrix, partnerW = 3, opponentW = 1) {
+    let cost = 0;
+    for (const court of courts) {
+      const { team1, team2 } = court;
+      // Partner pairs (same team)
+      for (let i = 0; i < team1.length; i++)
+        for (let j = i + 1; j < team1.length; j++)
+          cost += partnerW * (partnerMatrix[team1[i]][team1[j]] || 0);
+      for (let i = 0; i < team2.length; i++)
+        for (let j = i + 1; j < team2.length; j++)
+          cost += partnerW * (partnerMatrix[team2[i]][team2[j]] || 0);
+      // Opponent pairs (opposite teams)
+      for (const a of team1)
+        for (const b of team2)
+          cost += opponentW * (opponentMatrix[a][b] || 0);
+    }
+    return cost;
+  }
+
+  // Update history matrices after a round is accepted
+  function updateMatrices(courts, partnerMatrix, opponentMatrix) {
+    for (const court of courts) {
+      const { team1, team2 } = court;
+      for (let i = 0; i < team1.length; i++)
+        for (let j = i + 1; j < team1.length; j++) {
+          partnerMatrix[team1[i]][team1[j]]++;
+          partnerMatrix[team1[j]][team1[i]]++;
+        }
+      for (let i = 0; i < team2.length; i++)
+        for (let j = i + 1; j < team2.length; j++) {
+          partnerMatrix[team2[i]][team2[j]]++;
+          partnerMatrix[team2[j]][team2[i]]++;
+        }
+      for (const a of team1)
+        for (const b of team2) {
+          opponentMatrix[a][b]++;
+          opponentMatrix[b][a]++;
+        }
+    }
+  }
+
+  // Convert a flat ordered player list into courts (split into teams)
+  function arrangeToCourts(playing, numCourts, perCourt) {
+    const courts = [];
+    for (let c = 0; c < numCourts; c++) {
+      const group = playing.slice(c * perCourt, (c + 1) * perCourt);
+      const half = Math.ceil(group.length / 2);
+      courts.push({ team1: group.slice(0, half), team2: group.slice(half) });
+    }
+    return courts;
+  }
+
+  // Generate one optimised round using random-restart hill-climbing
+  // Tries `attempts` random arrangements and keeps the lowest-cost one.
+  // Also rotates bye players fairly.
+  function generateOptimisedRound(validPlayers, partnerMatrix, opponentMatrix, byeCounters, numCourts, perCourt, attempts = 200) {
+    const n = validPlayers.length;
+    const playersPerRound = numCourts * perCourt;
+    const numSitting = n - playersPerRound;
+
+    // Choose who sits out — prefer players who have sat out least
+    let sitting = [];
+    let playing = [...validPlayers];
+    if (numSitting > 0) {
+      // Sort by bye count ascending, break ties randomly
+      const ranked = [...validPlayers].sort((a, b) => {
+        const diff = byeCounters[a] - byeCounters[b];
+        return diff !== 0 ? diff : Math.random() - 0.5;
+      });
+      sitting = ranked.slice(0, numSitting);
+      playing = validPlayers.filter(p => !sitting.includes(p));
+    }
+
+    let bestCourts = null;
+    let bestScore = Infinity;
+
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      const shuffledPlaying = shuffle(playing);
+      const courts = arrangeToCourts(shuffledPlaying, numCourts, perCourt);
+      const score = scoreArrangement(courts, partnerMatrix, opponentMatrix);
+      if (score < bestScore) {
+        bestScore = score;
+        bestCourts = courts;
+        // Early exit if perfect (no repeats at all)
+        if (score === 0) break;
+      }
+    }
+
+    return { courts: bestCourts, sitting, score: bestScore };
+  }
+
+  function generateDraw() {
+    const validPlayers = players.filter(p => p.trim());
+    const warn = document.getElementById('warningBar');
+
+    if (validPlayers.length < settings.perCourt) {
+      warn.style.display = 'block';
+      warn.textContent = `⚠ Need at least ${settings.perCourt} players for 1 court. Add more players.`;
+      return;
+    }
+    warn.style.display = 'none';
+
+    const numCourts = Math.min(settings.courts, Math.floor(validPlayers.length / settings.perCourt));
+    const partnerMatrix = makeMatrix(validPlayers);
+    const opponentMatrix = makeMatrix(validPlayers);
+    const byeCounters = Object.fromEntries(validPlayers.map(p => [p, 0]));
+
+    allRounds = [];
+    for (let r = 0; r < settings.rounds; r++) {
+      const round = generateOptimisedRound(
+        validPlayers, partnerMatrix, opponentMatrix,
+        byeCounters, numCourts, settings.perCourt
+      );
+      // Update matrices so next round is aware of history
+      updateMatrices(round.courts, partnerMatrix, opponentMatrix);
+      for (const p of round.sitting) byeCounters[p]++;
+      allRounds.push(round);
+    }
+
+    document.getElementById('resultsSection').style.display = 'block';
+    document.getElementById('emptyState').style.display = 'none';
+
+    renderRoundTabs();
+    showRound(0);
+    buildAllRoundsTable(validPlayers);
+  }
+
+  function resetResults() {
+    allRounds = [];
+    document.getElementById('resultsSection').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'block';
+    document.getElementById('warningBar').style.display = 'none';
+  }
+
+  // Build partner/opponent summary from completed rounds
+  function buildPairingSummary(validPlayers) {
+    const partnerCount = makeMatrix(validPlayers);
+    const opponentCount = makeMatrix(validPlayers);
+    for (const round of allRounds) {
+      updateMatrices(round.courts, partnerCount, opponentCount);
+    }
+    return { partnerCount, opponentCount };
+  }
+
+  // --- Rendering ---
+  function renderRoundTabs() {
+    const tabs = document.getElementById('roundTabs');
+    tabs.innerHTML = allRounds.map((_, i) => `
+      <button class="round-tab ${i === 0 ? 'active' : ''}" id="tab${i}" onclick="showRound(${i})">
+        Round ${i + 1}
+      </button>
+    `).join('');
+  }
+
+  function showRound(i) {
+    currentRound = i;
+    document.querySelectorAll('.round-tab').forEach((t, idx) => t.classList.toggle('active', idx === i));
+    document.getElementById('resultsTitle').textContent = `Round ${i + 1} Draw`;
+    renderCourts(allRounds[i]);
+  }
+
+  function renderCourts(round) {
+    const grid = document.getElementById('courtsGrid');
+    grid.innerHTML = round.courts.map((court, ci) => `
+      <div class="court-card" style="animation-delay:${ci * 60}ms">
+        <div class="court-header">
+          <div class="court-icon">${ci + 1}</div>
+          <div class="court-name">Court ${ci + 1}</div>
+        </div>
+        <div class="team-section">
+          <div class="team-label">Team A</div>
+          <div class="team-players">
+            ${court.team1.map(p => `<div class="player-chip">${p}</div>`).join('')}
+          </div>
+          <div class="vs-divider">VS</div>
+          <div class="team-label">Team B</div>
+          <div class="team-players">
+            ${court.team2.map(p => `<div class="player-chip">${p}</div>`).join('')}
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    const byeSection = document.getElementById('byeSection');
+    const byePlayers = document.getElementById('byePlayers');
+    if (round.sitting.length > 0) {
+      byeSection.style.display = 'block';
+      byePlayers.innerHTML = round.sitting.map(p => `<span class="bye-chip">${p}</span>`).join('');
+    } else {
+      byeSection.style.display = 'none';
+    }
+  }
+
+  function buildAllRoundsTable(validPlayers) {
+    const table = document.getElementById('allRoundsTable');
+    const headers = ['Player', ...allRounds.map((_, i) => `Round ${i + 1}`), 'Byes'];
+    
+    const rows = validPlayers.map(player => {
+      let byes = 0;
+      const cells = allRounds.map(round => {
+        for (let c = 0; c < round.courts.length; c++) {
+          const court = round.courts[c];
+          if ([...court.team1, ...court.team2].includes(player)) return `Court ${c + 1}`;
+        }
+        byes++;
+        return 'Bye';
+      });
+      return { player, cells, byes };
+    });
+
+    table.innerHTML = `
+      <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr>
+            <td>${r.player}</td>
+            ${r.cells.map(c => `<td style="color:${c === 'Bye' ? 'var(--gray)' : 'var(--gray-light)'}">${c}</td>`).join('')}
+            <td style="color:${r.byes > 0 ? 'var(--yellow)' : 'var(--gray)'};font-weight:600;">${r.byes}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    `;
+
+    // Build pairing stats
+    const { partnerCount, opponentCount } = buildPairingSummary(validPlayers);
+    const statsGrid = document.getElementById('statsGrid');
+
+    const makeStatTable = (matrix, title, color) => {
+      const cols = validPlayers;
+      return `
+        <div class="all-rounds-table">
+          <div style="padding:12px 16px 0;font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;letter-spacing:2px;text-transform:uppercase;color:${color};">${title}</div>
+          <table style="margin-top:8px;">
+            <thead><tr><th>↓ with / vs →</th>${cols.map(p => `<th>${p}</th>`).join('')}</tr></thead>
+            <tbody>
+              ${cols.map(row => `
+                <tr>
+                  <td>${row}</td>
+                  ${cols.map(col => {
+                    if (row === col) return `<td style="color:var(--navy-mid);background:rgba(0,0,0,0.2);">—</td>`;
+                    const v = matrix[row][col];
+                    const intensity = Math.min(v / Math.max(allRounds.length * 0.5, 1), 1);
+                    const bg = v > 0 ? `rgba(245,197,24,${0.08 + intensity * 0.35})` : 'transparent';
+                    return `<td style="text-align:center;background:${bg};color:${v > 0 ? 'var(--white)' : 'var(--gray)'};font-weight:${v > 0 ? 600 : 400};">${v}</td>`;
+                  }).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    };
+
+    statsGrid.innerHTML =
+      makeStatTable(partnerCount, 'Partner Count (same team)', 'var(--yellow)') +
+      makeStatTable(opponentCount, 'Opponent Count (opposite team)', '#7dd3fc)');
+  }
+
+  function setView(view) {
+    currentView = view;
+    document.getElementById('cardsView').style.display = view === 'cards' ? 'block' : 'none';
+    document.getElementById('tableView').style.display = view === 'table' ? 'block' : 'none';
+    document.getElementById('statsView').style.display = view === 'stats' ? 'block' : 'none';
+    document.getElementById('roundTabs').style.display = view === 'cards' ? 'flex' : 'none';
+    document.getElementById('viewCards').classList.toggle('active', view === 'cards');
+    document.getElementById('viewTable').classList.toggle('active', view === 'table');
+    document.getElementById('viewStats').classList.toggle('active', view === 'stats');
+    if (view === 'cards') document.getElementById('resultsTitle').textContent = `Round ${currentRound + 1} Draw`;
+    else if (view === 'table') document.getElementById('resultsTitle').textContent = 'All Rounds Overview';
+    else document.getElementById('resultsTitle').textContent = 'Pairing Statistics';
+  }
+</script>
+</body>
+</html>
